@@ -1,0 +1,56 @@
+#!/usr/bin/python
+
+from dandolib import *
+from time import sleep
+
+d = findDash("dash")
+
+# TURN
+d.turn_right(45)
+sleep(2)
+d.turn_right(90)
+sleep(2)
+d.turn_right(180)
+sleep(2)
+d.turn_right(270)
+sleep(3)
+d.turn_right(360)
+sleep(3)
+d.turn_left(45)
+sleep(2)
+d.turn_left(90)
+sleep(2)
+d.turn_left(180)
+sleep(2)
+d.turn_left(270)
+sleep(3)
+d.turn_left(360)
+sleep(3)
+
+# TURN HEAD
+d.look(0,0)
+sleep(2)
+d.look(90,22)
+sleep(2)
+d.look(-90,-10)
+sleep(2)
+d.look(0,0)
+sleep(2)
+d.look_vertical(22)
+sleep(2)
+d.look_vertical(0)
+sleep(2)
+d.look_vertical(-7)
+sleep(2)
+d.look_vertical(0)
+sleep(2)
+d.look_horizontal(-45)
+sleep(2)
+d.look_horizontal(0)
+sleep(2)
+d.look_horizontal(45)
+sleep(2)
+d.look_horizontal(0)
+sleep(2)
+
+d.disconnect()
