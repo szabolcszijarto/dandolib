@@ -1,0 +1,11 @@
+Features not yet supported:
+1. custom sounds
+2. sensors:
+   2a. see dot/dash
+   2b. hear clap
+   2c. picked up (isBeingShaken() could be an alternative?)
+   2d. stuck
+3. set wheel speed left/right separately (use turning to degree as an alternative)
+4. turn to voice / look towards voice (directional hearing)
+5. add offset value to tilt sensors
+

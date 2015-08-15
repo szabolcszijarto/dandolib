@@ -1,4 +1,5 @@
 from gattlib import GATTRequester, DiscoveryService
+from time import sleep
 
 #
 # CONSTANTS
@@ -103,6 +104,7 @@ class WWRobot(object):
         self.device = device
         self.address = address
         self.requester = Requester(self.address, False, self.device)
+        self.setWait4IdleFlag(True)
         if auto_connect: self.connect()
 
     def __del__(self):
@@ -114,6 +116,10 @@ class WWRobot(object):
 
     def isDot(self):
         return False
+
+    def setWait4IdleFlag(self, param):
+        self.wait4IdleFlag = (param == True)
+        
 
     #
     # CONNECTING
@@ -161,6 +167,21 @@ class WWRobot(object):
         if handle==24: d = self.requester.notification24data
         return d
 
+    def isIdle(self):
+        status = ord(self.requester.notification21data[14])
+        return (status == 0x38)
+
+    def waitUntilIdle(self):
+        if (self.wait4IdleFlag):
+            while not self.isIdle():
+                sleep(0.05)
+
+    def waitUntilBusy(self):
+        if (self.wait4IdleFlag):
+            while self.isIdle():
+                sleep(0.05)
+        
+
     #
     # BUTTONS
     #
@@ -179,7 +200,11 @@ class WWRobot(object):
     #
 
     def sound(self, what=HORN):
+        #print "Playing %s" % what
         self.requester.write_by_handle(0x0013, chr(0x18) + 'SYST' + what)
+        if (self.wait4IdleFlag):
+            self.waitUntilBusy() # wait until command actually gets executed
+            self.waitUntilIdle() # wait until command completes
 
     def beep(self, pitch=400, duration=50):
         _p1 = pitch // 256 # HI byte
@@ -388,6 +413,10 @@ class Dash(WWRobot):
             _d4 = int ( (_distance * _multiplier) % 256 )   # LO byte
             self.requester.write_by_handle(0x0013, chr(0x23) +chr(_d1) +chr(0x00) +chr(0x00) \
                                                   +chr(_d3) +chr(_d4) +chr(_d2) +chr(0x00) +chr(0x41))
+        if (self.wait4IdleFlag):
+            self.waitUntilBusy() # wait until command actually gets executed
+            self.waitUntilIdle() # wait until command completes
+
 
     def drive(self,direction=FORWARD, speed=NORMAL):
         if direction==FORWARD :
