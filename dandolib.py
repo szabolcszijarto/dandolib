@@ -12,18 +12,54 @@ TWO    = 2
 THREE  = 3
 
 # SOUNDS
-HORN     = 'HAPPY_HONK'
-BYEBYE   = 'BO_V7_VARI'
-SIREN    = 'X_SIREN_02'
-TIRE     = 'TIRESQUEAL'
-COW      = 'COW_MOO11A'
-DOG      = 'FX_DOG_02'
-ELEPHANT = 'ELEPHANT_0'
-OHYEAH   = 'BRAGGING1A'
-OHNO     = 'V7_OHNO_09'
-WOW      = 'CONFUSED_8'
-HI       = 'DASH_HI_VO'
-TRUCK    = 'TRUCKHORN'
+BYEBYE    = 'BO_V7_VARI'
+COOL      = 'COOL      '
+HAHA      = 'HAPPYLAUGH'
+HI        = 'DASH_HI_VO'
+LETSGO    = 'LETS_GO'
+TRUMPET   = 'TRUMPET_01'
+TAHDAH    = 'TAH_DAH_01'
+UHUH      = 'YAUHHUH'
+UHOH      = 'WHUH_OH_20'
+YIPPE     = 'YIPPEE'
+OOH       = 'HAVINGFUN1'
+OHYEAH    = 'BRAGGING1A'
+OHNO      = 'V7_OHNO_09'
+WOW       = 'CONFUSED_8'
+WOW2       = 'DASH_WOW_3'
+CONFUSED  = 'CONFUSED_1'
+GIGGLE    = 'HAPPYLAUGH'
+GOBBLE    = 'GOBBLE_001'
+GRUNT     = 'HEAVYOBJEC'
+SIGN      = 'BO_V7_YAWN'
+SNORE     = 'SNORING'
+SQUEAK    = 'OT_CUTE_04'
+SURPRISED = 'SURPRISE02'
+WAH       = 'DASH_WHAA1'
+WEEHEE    = 'WHEEYEEYEE'
+YAWN      = 'TIRED_YAWN'
+CAT       = 'FX_CAT_01'
+CROCODILE = 'CROCODILE'
+DINOSAUR  = 'DINOSAUR_3'
+COW       = 'COW_MOO11A'
+DOG       = 'FX_DOG_02'
+ELEPHANT  = 'ELEPHANT_0'
+GOAT      = 'FX_03_GOAT'
+HORSE     = 'HORSEWHIN3'
+LION      = 'FX_LION_01'
+TRUCK     = 'TRUCKHORN'
+HORN      = 'HAPPY_HONK'
+SIREN     = 'X_SIREN_02'
+TIRE      = 'TIRESQUEAL'
+AIRPLANE  = 'AIRPORTJET'
+BEEP      = 'BOT_CUTE_0'
+BOAT      = 'TUGBOAT_01'
+BUZZ      = 'US_LIPBUZZ'
+HELICOPTER= 'HELICOPTER'
+LASERS    = 'OT_CUTE_03'
+SPEEDBOOST= 'SHORTBOOST'
+ENGINEREV = 'ENGINE_REV'
+TRAIN     = 'TRAIN_WHIS'
 
 # LIGHTS
 BLACK   = str(bytearray([0x00, 0x00, 0x00]))
@@ -100,6 +136,9 @@ class Requester(GATTRequester):
 #
 class WWRobot(object):
 
+    _horizontal_stable_pos = 0
+    _vertical_stable_pos   = 15
+
     def __init__(self, address, device="hci0", timeout=3, auto_connect=True):
         self.device = device
         self.address = address
@@ -122,7 +161,7 @@ class WWRobot(object):
         
 
     #
-    # CONNECTING
+    # CONNECTION
     #
     
     def connect(self):
@@ -167,9 +206,24 @@ class WWRobot(object):
         if handle==24: d = self.requester.notification24data
         return d
 
+    #
+    # IDLE DETECTION
+    #
+    
     def isIdle(self):
-        status = ord(self.requester.notification21data[14])
-        return (status == 0x38)
+        stat = ord(self.requester.notification21data[14])
+        #TODO: these constants are still not quite clear...
+        #0x02 = sound is playing
+        #0x20 = dash is moving - even if not by itself
+        #0x10 = dash hears noise?
+        #if self.isDash():
+        #    status = stat & 0xef
+        #    _idle = 0x20
+        #if self.isDot():
+        status = stat
+        #    _idle = 0x00
+        #print "Idle status = %02xh / %02xh ( expected status for idle = %02xh)" % (status, stat, _idle)
+        return (status == _idle)
 
     def waitUntilIdle(self):
         if (self.wait4IdleFlag):
@@ -179,7 +233,7 @@ class WWRobot(object):
     def waitUntilBusy(self):
         if (self.wait4IdleFlag):
             while self.isIdle():
-                sleep(0.05)
+                sleep(0.01)
         
 
     #
@@ -202,8 +256,8 @@ class WWRobot(object):
     def sound(self, what=HORN):
         #print "Playing %s" % what
         self.requester.write_by_handle(0x0013, chr(0x18) + 'SYST' + what)
+        sleep(0.1)
         if (self.wait4IdleFlag):
-            self.waitUntilBusy() # wait until command actually gets executed
             self.waitUntilIdle() # wait until command completes
 
     def beep(self, pitch=400, duration=50):
@@ -269,22 +323,25 @@ class WWRobot(object):
     # TODO: to avoid "drifting", these methods need offset values which are different for each individual robot
 
     def getHorizontalTilt(self):
-        _m1 = self.getNotificationData(21)[7]
-        _horizontal = ord(_m1) & 0x0f
+        _m1 = ord(self.getNotificationData(21)[7])
+        _horizontal = (_m1 & 0x0f) - self._horizontal_stable_pos
+        #print "horizontal status: %02x " % _m1 , _horizontal
         return _horizontal
 
     def getVerticalTilt(self):
-        _m1 = self.getNotificationData(21)[7]
-        _vertical = ord(_m1) >> 4
+        _m1 = ord(self.getNotificationData(21)[7])
+        _vertical = (_m1 >> 4) - self._vertical_stable_pos
+        #print "vertical status: %02x " % _m1 , _vertical
         return _vertical        
 
     def isStable(self):
-        _m1 = self.getNotificationData(21)[7]
-        _vertical = ord(_m1) >> 4
-        _horizontal = ord(_m1) & 0x0f
-        _not_tilted_vertically = (_vertical == 15)
-        _not_tilted_horizontally = (_horizontal == 0)
-        return _not_tilted_vertically and _not_tilted_horizontally
+        _m1 = ord(self.getNotificationData(21)[7])
+        _horizontal = self.getHorizontalTilt()
+        _vertical = self.getVerticalTilt()
+        _tilted_horizontally = _horizontal <> 0
+        _tilted_vertically = _vertical <> 0
+        #print "Tilt status: %02x " % _m1 , _horizontal, _vertical, _tilted_horizontally, _tilted_vertically
+        return (not _tilted_horizontally) and (not _tilted_vertically)
 
     def isTilted(self):
         return not self.isStable()
@@ -469,6 +526,10 @@ class Dash(WWRobot):
         self.requester.write_by_handle(0x0013, chr(0x23) +chr(0x00) +chr(0x00) \
                                               +chr(_m2) +chr(_m3) +chr(_m4) +chr(_m1) \
                                               +chr(0x00) +chr(0x80) )
+        if (self.wait4IdleFlag):
+            self.waitUntilBusy() # wait until command actually gets executed
+            self.waitUntilIdle() # wait until command completes
+
 
     def turn_right(self, angle=90):
         _ang = angle
@@ -483,6 +544,9 @@ class Dash(WWRobot):
         self.requester.write_by_handle(0x0013, chr(0x23) +chr(0x00) +chr(0x00) \
                                               +chr(_m2) +chr(_m3) +chr(_m4) +chr(_m1) \
                                               +chr(0xc0) +chr(0x80) )
+        if (self.wait4IdleFlag):
+            self.waitUntilBusy() # wait until command actually gets executed
+            self.waitUntilIdle() # wait until command completes
 
     #
     # TURNING THE HEAD
