@@ -10,6 +10,7 @@ TOP    = 0
 ONE    = 1
 TWO    = 2
 THREE  = 3
+ANY    = 99
 
 # SOUNDS
 BYEBYE    = 'BO_V7_VARI'
@@ -156,7 +157,7 @@ class WWRobot(object):
     def isDot(self):
         return False
 
-    def setWait4IdleFlag(self, param):
+    def setWait4IdleFlag(self, param=True):
         self.wait4IdleFlag = (param == True)
         
 
@@ -214,15 +215,15 @@ class WWRobot(object):
         stat = ord(self.requester.notification21data[14])
         #TODO: these constants are still not quite clear...
         #0x02 = sound is playing
+        #0x10 = dash hears clap?
         #0x20 = dash is moving - even if not by itself
-        #0x10 = dash hears noise?
-        #if self.isDash():
-        #    status = stat & 0xef
-        #    _idle = 0x20
-        #if self.isDot():
-        status = stat
-        #    _idle = 0x00
-        #print "Idle status = %02xh / %02xh ( expected status for idle = %02xh)" % (status, stat, _idle)
+        if self.isDash():
+            status = stat & 0xef
+            _idle = 0x28
+        if self.isDot():
+            status = stat
+            _idle = 0x00
+        #print "Idle status = " +"{0:08b}".format(stat)+ " / " +"{0:08b}".format(status)+ " (expected status for idle =" +"{0:08b}".format(_idle) + ")"
         return (status == _idle)
 
     def waitUntilIdle(self):
@@ -240,13 +241,14 @@ class WWRobot(object):
     # BUTTONS
     #
   
-    def isButtonPressed(self, button):
+    def isButtonPressed(self, button=ANY):
         r = False
         _m1 = ord(self.getNotificationData(21)[11])
         if button == TOP:   r = ( (_m1 & 0x10) > 0)
         if button == ONE:   r = ( (_m1 & 0x20) > 0)
         if button == TWO:   r = ( (_m1 & 0x40) > 0)
         if button == THREE: r = ( (_m1 & 0x80) > 0)
+        if button == ANY:   r = ( (_m1 & 0xf0) > 0)
         return r
 
     #
@@ -258,7 +260,10 @@ class WWRobot(object):
         self.requester.write_by_handle(0x0013, chr(0x18) + 'SYST' + what)
         sleep(0.1)
         if (self.wait4IdleFlag):
-            self.waitUntilIdle() # wait until command completes
+            # wait until command completes
+            while ( ord(self.requester.notification21data[14]) & 0x02 ) > 0 :
+                pass
+            
 
     def beep(self, pitch=400, duration=50):
         _p1 = pitch // 256 # HI byte
@@ -312,9 +317,15 @@ class WWRobot(object):
     #
     
     def hearSound(self):
-        _m1 = ord(self.getNotificationData(21)[10])
-        _m2 = ord(self.getNotificationData(21)[12])
+        _m1 = ord(self.getNotificationData(21)[10]) # left?
+        _m2 = ord(self.getNotificationData(21)[12]) # right?
         return (_m1 > 0x01) or (_m2 > 0x80)
+
+    def hearClap(self):
+        stat = ord(self.requester.notification21data[14])
+        #0x10 = dash hears clap?
+        status = stat & 0x10
+        return (status > 0)
 
     #
     # TILT SENSORS
