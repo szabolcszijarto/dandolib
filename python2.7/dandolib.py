@@ -218,12 +218,12 @@ class WWRobot(object):
         #0x10 = dash hears clap?
         #0x20 = dash is moving - even if not by itself
         if self.isDash():
-            status = stat & 0xef
-            _idle = 0x28
+            status = stat & 0xe7
+            _idle = 0x20
         if self.isDot():
             status = stat
             _idle = 0x00
-        #print "Idle status = " +"{0:08b}".format(stat)+ " / " +"{0:08b}".format(status)+ " (expected status for idle =" +"{0:08b}".format(_idle) + ")"
+        #print "Idle status = " +str(status==_idle) +" {0:08b}".format(stat)+ " / " +"{0:08b}".format(status)+ " (expected status for idle =" +"{0:08b}".format(_idle) + ")"
         return (status == _idle)
 
     def waitUntilIdle(self):
@@ -234,7 +234,7 @@ class WWRobot(object):
     def waitUntilBusy(self):
         if (self.wait4IdleFlag):
             while self.isIdle():
-                sleep(0.01)
+                sleep(0.05)
         
 
     #
@@ -265,10 +265,11 @@ class WWRobot(object):
                 pass
             
 
-    def beep(self, pitch=400, duration=50):
-        _p1 = pitch // 256 # HI byte
-        _p2 = pitch % 256  # LO byte
-        self.requester.write_by_handle(0x0013, chr(0x19) + chr(_p1) + chr(_p2) + chr(duration))
+    def beep(self, pitch=40, duration=50):
+        # pitch = 10 .. 63
+        if pitch < 10 : pitch = 10
+        if pitch > 63 : pitch = 63
+        self.requester.write_by_handle(0x0013, chr(0x19) + chr(pitch) + chr(0) + chr(duration))
 
     #
     # LIGHTS

@@ -9,14 +9,15 @@ print "Connected to "+d.name
 
 # SOUNDS
 d.sound()
-sleep(2)
 d.sound(TRUCK)
-sleep(2)
-d.sound(HI)
-sleep(2)
-d.beep()
-sleep(2)
-d.beep(600,200)
-sleep(2)
 
-d.disconnect()
+# BEEPS
+d.beep()
+sleep(0.5)
+d.beep(30,100)
+sleep(0.5)
+d.beep(30,200)
+sleep(0.5)
+d.beep(63,50)
+sleep(0.2)
+d.beep(100,50)
