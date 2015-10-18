@@ -443,7 +443,7 @@ class Dash(WWRobot):
         return self.getObjectDistanceBehind() < self.distancetreshold
 
     def isSomethingAhead(self):
-        return (self.getObjectDistanceLeft() < self.distancetreshold) and (self.getObjectDistanceRight() > self.distancetreshold)
+        return (self.isSomethingRight() or self.isSomethingLeft())
 
 
     #
@@ -488,6 +488,7 @@ class Dash(WWRobot):
 
 
     def drive(self,direction=FORWARD, speed=NORMAL):
+        # TODO: asymmetric driving (set speed of left and right motor separately)
         if direction==FORWARD :
             if speed==VERY_SLOW :
                 _m1 = 0x28
